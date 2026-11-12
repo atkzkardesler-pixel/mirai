@@ -1,0 +1,92 @@
+name: Mirai CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+          
+      - name: Run tests
+        run: |
+          pytest tests/ -v
+          
+      - name: Lint
+        run: |
+          ruff check src/ scripts/
+          black --check src/ scripts/
+
+  prepare-data:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Generate training data
+        run: python scripts/prepare_data.py
+        
+      - name: Upload training data
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirai-training-data
+          path: data/training.jsonl
+
+  evren-train:
+    runs-on: ubuntu-latest
+    needs: prepare-data
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download training data
+        uses: actions/download-artifact@v4
+        with:
+          name: mirai-training-data
+          path: data/
+          
+      - name: Trigger EVREN training
+        run: |
+          echo "EVREN eğitimi için manual başlatma gerekli:"
+          echo "1. EVREN → Veri Setleri → data/training.jsonl yükle"
+          echo "2. Eğitim → configs/evren_train_stage1.yaml yapıştır → BAŞLAT"
+          echo "EVREN_API_KEY: ${{ secrets.EVREN_API_KEY }}"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: evren-train
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to EVREN
+        run: |
+          echo "Model eğitimi bittiğinde:"
+          echo "1. EVREN → Çıkarım → Model seç → Deploy"
+          echo "2. API endpoint al → agent_loop.py'ye yaz"
+          echo "3. python scripts/agent_loop.py"

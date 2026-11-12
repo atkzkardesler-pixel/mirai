@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models & Data
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+mirai_output*/
+mirai_memory.json
+*.jsonl
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+*.env
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+dist/
+build/
+*.egg-info/
